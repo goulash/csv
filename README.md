@@ -6,6 +6,6 @@ goulash/csv
 
 Package csv makes marshaling datatypes to CSV easier.
 
-The functions made available are based on the standard library `json` package.
+The functions made available are loosely based on the standard library `json` package.
 
 This package is licensed under the MIT license.
