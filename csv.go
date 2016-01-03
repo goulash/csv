@@ -41,6 +41,9 @@ func Marshal(v interface{}) ([]byte, error) {
 		}
 		return nil, errors.New("struct type does not implement CSVMarshaler or Recorder")
 	case reflect.Slice, reflect.Array:
+		if vt.Elem().Kind() == reflect.Ptr {
+			vt = vt.Elem() // now vt is a pointer
+		}
 		if vt.Elem().Implements(recorderType) {
 			return marshalRecorderSlice(v)
 		}
