@@ -7,6 +7,7 @@ package csv
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -39,7 +40,7 @@ func Marshal(v interface{}) ([]byte, error) {
 			t := v.(Recorder)
 			return marshalRecorder(t), nil
 		}
-		return nil, errors.New("csv: struct type does not implement Marshaler or Recorder")
+		return nil, fmt.Errorf("csv: struct type %s does not implement Marshaler or Recorder", vt)
 	case reflect.Slice, reflect.Array:
 		if vt.Elem().Kind() == reflect.Ptr {
 			vt = vt.Elem() // now vt is a pointer
@@ -47,9 +48,9 @@ func Marshal(v interface{}) ([]byte, error) {
 		if vt.Elem().Implements(recorderType) {
 			return marshalRecorderSlice(v)
 		}
-		return nil, errors.New("csv: slice element type does not implement Recorder")
+		return nil, fmt.Errorf("csv: slice element type %s does not implement Recorder", vt.String())
 	default:
-		return nil, errors.New("csv: cannot marshal")
+		return nil, fmt.Errorf("csv: cannot marshal type %s", vt)
 	}
 }
 
