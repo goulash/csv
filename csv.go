@@ -11,10 +11,18 @@ import (
 	"reflect"
 )
 
+// A Marshaler specifies directly how the data is marshaled to CSV.
+// The result should include the header as well as the data.
 type Marshaler interface {
 	MarshalCSV() ([]byte, error)
 }
 
+// A Recorder specifies the Header that a file returns, as well as the string
+// representation of the values. The lengths of elements returned by Header()
+// and Record() should be the same.
+//
+// The reason for implementing Recorder is that a slice or array of Recorder
+// can be marshaled.
 type Recorder interface {
 	Header() []string
 	Record() []string
@@ -25,6 +33,11 @@ var (
 	recorderType  = reflect.TypeOf(new(Recorder)).Elem()
 )
 
+// Marshal takes a type that implements Marshaler, Recorder, or a slice or array
+// of types that implement Recorder and returns a CSV byte slice.
+//
+// Even a slice of interface{} can be marshaled, provided that the type of every
+// value in the slice is the same, and each type implements Recorder.
 func Marshal(v interface{}) ([]byte, error) {
 	vt := reflect.TypeOf(v)
 
