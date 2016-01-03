@@ -28,6 +28,16 @@ var (
 func Marshal(v interface{}) ([]byte, error) {
 	vt := reflect.TypeOf(v)
 
+	// Sometimes Recorder and Marhaler are only defined on pointer types
+	if vt.Implements(marshalerType) {
+		t := v.(Marshaler)
+		return t.MarshalCSV()
+	}
+	if vt.Implements(recorderType) {
+		t := v.(Recorder)
+		return marshalRecorder(t), nil
+	}
+
 	switch vt.Kind() {
 	case reflect.Ptr:
 		return Marshal(reflect.ValueOf(v).Elem().Interface())
@@ -48,7 +58,7 @@ func Marshal(v interface{}) ([]byte, error) {
 		if vt.Elem().Implements(recorderType) {
 			return marshalRecorderSlice(v)
 		}
-		return nil, fmt.Errorf("csv: slice element type %s does not implement Recorder", vt.String())
+		return nil, fmt.Errorf("csv: slice element type %s does not implement Recorder", vt.Elem())
 	default:
 		return nil, fmt.Errorf("csv: cannot marshal type %s", vt)
 	}
