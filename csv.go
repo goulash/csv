@@ -39,7 +39,7 @@ func Marshal(v interface{}) ([]byte, error) {
 			t := v.(Recorder)
 			return marshalRecorder(t), nil
 		}
-		return nil, errors.New("struct type does not implement CSVMarshaler or Recorder")
+		return nil, errors.New("csv: struct type does not implement Marshaler or Recorder")
 	case reflect.Slice, reflect.Array:
 		if vt.Elem().Kind() == reflect.Ptr {
 			vt = vt.Elem() // now vt is a pointer
@@ -47,9 +47,9 @@ func Marshal(v interface{}) ([]byte, error) {
 		if vt.Elem().Implements(recorderType) {
 			return marshalRecorderSlice(v)
 		}
-		return nil, errors.New("slice element type does not implement Recorder")
+		return nil, errors.New("csv: slice element type does not implement Recorder")
 	default:
-		return nil, errors.New("cannot marshal to CSV")
+		return nil, errors.New("csv: cannot marshal")
 	}
 }
 
@@ -69,7 +69,7 @@ func marshalRecorderSlice(v interface{}) ([]byte, error) {
 
 	var buf bytes.Buffer
 	if n == 0 {
-		return nil, errors.New("no data")
+		return nil, errors.New("csv: no data")
 	}
 	writeRecord(&buf, get(0).Header())
 	for i := 0; i < n; i++ {
