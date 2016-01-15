@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // A Marshaler specifies directly how the data is marshaled to CSV.
@@ -31,6 +32,7 @@ type Recorder interface {
 var (
 	marshalerType = reflect.TypeOf(new(Marshaler)).Elem()
 	recorderType  = reflect.TypeOf(new(Recorder)).Elem()
+	strsliceType  = reflect.TypeOf([]string{})
 )
 
 // Marshal takes a type that implements Marshaler, Recorder, or a slice or array
@@ -71,10 +73,25 @@ func Marshal(v interface{}) ([]byte, error) {
 			return marshalInterfaceSlice(v)
 		}
 
+		// As a special case, if it is a slice of strings, print each string as a line.
+		// No extra header will be printed however, this is up to the user.
+		if vt == strsliceType {
+			return marshalStringSlice(v.([]string))
+		}
+
 		return nil, fmt.Errorf("csv: slice element type %s does not implement Recorder", vt.Elem())
 	}
 
 	return nil, fmt.Errorf("csv: cannot marshal %s", vt)
+}
+
+func marshalStringSlice(xs []string) ([]byte, error) {
+	var buf bytes.Buffer
+	for _, x := range xs {
+		buf.WriteString(Escape(x))
+		buf.WriteRune('\n')
+	}
+	return buf.Bytes(), nil
 }
 
 func marshalRecorder(v Recorder) []byte {
@@ -144,12 +161,38 @@ func marshalInterfaceSlice(v interface{}) (bs []byte, err error) {
 	return buf.Bytes(), nil
 }
 
+// Escape formats a string so that it complies with the CSV conventions.
+//
+// If the string contains any double-quote characters, comma characters or
+// newlines then the entire string is put in double-quotes and double-quotes
+// are replaced with double-double-quotes.
+//
+// See: http://stackoverflow.com/questions/769621/dealing-with-commas-in-a-csv-file
+func Escape(s string) string {
+	if !strings.ContainsAny(s, "\n,\"") {
+		return s
+	}
+
+	var buf bytes.Buffer
+	buf.WriteRune('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			buf.WriteString(`""`)
+		default:
+			buf.WriteRune(r)
+		}
+	}
+	buf.WriteRune('"')
+	return buf.String()
+}
+
 func writeRecord(buf *bytes.Buffer, slice []string) {
 	m := len(slice) - 1
 	for _, s := range slice[:m] {
-		buf.WriteString(s)
+		buf.WriteString(Escape(s))
 		buf.WriteRune(',')
 	}
-	buf.WriteString(slice[m])
+	buf.WriteString(Escape(slice[m]))
 	buf.WriteRune('\n')
 }
